@@ -62,18 +62,23 @@ html,[class*="css"]          { font-family:'Plus Jakarta Sans',sans-serif; }
 
 /* ── inputs ── */
 .stTextInput input,
-.stSelectbox div[data-baseweb="select"],
 .stNumberInput input,
 .stTextArea textarea             { background:#f8fafc!important; border:1.5px solid #cbd5e1!important;
-                                   color:#0f172a!important; border-radius:10px!important; }
+                                   color:#0f172a!important; border-radius:10px!important;
+                                   caret-color:#0891b2!important; }
 .stTextInput input::placeholder  { color:#94a3b8!important; }
 .stTextInput input:focus,
 .stTextArea textarea:focus       { border-color:#0891b2!important;
-                                   box-shadow:0 0 0 3px rgba(8,145,178,.12)!important; }
+                                   box-shadow:0 0 0 3px rgba(8,145,178,.12)!important;
+                                   caret-color:#0891b2!important; }
+
+/* ── selectbox ── */
+.stSelectbox div[data-baseweb="select"]     { background:#f8fafc!important; border:1.5px solid #cbd5e1!important;
+                                              color:#0f172a!important; border-radius:10px!important; }
 .stSelectbox div[data-baseweb="select"]>div { background:#f8fafc!important; color:#0f172a!important; }
-div[data-baseweb="popover"]      { background:#ffffff!important; border:1px solid #e2e8f0!important; }
-div[data-baseweb="option"]       { background:#ffffff!important; color:#0f172a!important; }
-div[data-baseweb="option"]:hover { background:#f0f9ff!important; }
+div[data-baseweb="popover"]                 { background:#ffffff!important; border:1px solid #e2e8f0!important; }
+div[data-baseweb="option"]                  { background:#ffffff!important; color:#0f172a!important; }
+div[data-baseweb="option"]:hover            { background:#f0f9ff!important; }
 
 /* ── multiselect ── */
 .stMultiSelect>div               { background:#f8fafc!important; border:1.5px solid #cbd5e1!important;
@@ -83,7 +88,25 @@ span[data-baseweb="tag"]         { background:#e0f2fe!important; color:#0369a1!i
 
 /* ── file uploader ── */
 .stFileUploader>div              { background:#f8fafc!important;
-                                   border:2px dashed #cbd5e1!important; border-radius:14px!important; }
+                                   border:1.5px dashed #cbd5e1!important;
+                                   border-radius:10px!important;
+                                   padding:10px 14px!important;
+                                   min-height:unset!important; }
+.stFileUploader>div>div          { gap:6px!important; }
+.stFileUploader [data-testid="stFileUploaderDropzoneInstructions"] {
+                                   font-size:12px!important;
+                                   padding:4px 0!important; }
+.stFileUploader [data-testid="stFileUploaderDropzoneInstructions"] > div {
+                                   font-size:12px!important; }
+.stFileUploader svg              { width:24px!important; height:24px!important; }
+
+/* ── uploaded filename ── */
+.stFileUploader [data-testid="stFileUploaderFile"],
+.stFileUploader [data-testid="stFileUploaderFile"] span,
+.stFileUploader [data-testid="stFileUploaderFile"] p,
+.stFileUploader [data-testid="stFileUploaderFileName"],
+.stFileUploader span[title],
+.stFileUploader .uploadedFileName  { color:#0f172a!important; }
 
 /* ── button ── */
 .stButton>button                 { background:linear-gradient(135deg,#0e7490,#0891b2 55%,#06b6d4)!important;
@@ -117,9 +140,38 @@ h2,h3                            { color:#0f172a!important; }
 p,li                             { color:#475569; }
 code                             { background:#e0f2fe!important; color:#0369a1!important;
                                    border-radius:5px!important; padding:1px 6px!important; }
-pre                              { background:#f8fafc!important; border:1px solid #e2e8f0!important;
-                                   border-radius:12px!important; color:#0369a1!important; }
+
+/* ── FIX: pre block text always dark ── */
+pre,
+pre *,
+pre code,
+.stMarkdown pre,
+.stMarkdown pre *,
+div[data-testid="stMarkdownContainer"] pre,
+div[data-testid="stMarkdownContainer"] pre * {
+                                   background:#f1f5f9!important;
+                                   border:1px solid #e2e8f0!important;
+                                   border-radius:12px!important;
+                                   color:#0f172a!important;
+                                   font-family:'DM Mono',monospace!important;
+                                   font-size:13px!important;
+                                   padding:14px 18px!important;
+                                   display:block!important; }
+
 .stDataFrame                     { border:1px solid #e2e8f0!important; border-radius:10px!important; }
+
+/* ── install-block helper class ── */
+.install-block {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 6px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: #0f172a !important;
+    display: block;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -571,9 +623,10 @@ with tab2:
 
     with col_a:
         st.markdown('<div class="card"><h3>📤 Upload Resume</h3>', unsafe_allow_html=True)
-        uploaded  = st.file_uploader("Drag & drop your resume here",
+        uploaded  = st.file_uploader("Drag & drop or browse",
                                      type=["pdf","docx","txt"],
-                                     help="Supported: PDF, DOCX, TXT")
+                                     help="Supported: PDF, DOCX, TXT",
+                                     label_visibility="collapsed")
         tgt_role  = st.selectbox("Target Job Role (optional — improves ATS analysis)",
                                  ["(Auto-detect)"] + list(JOB_CLUSTERS.keys()))
         tgt_role  = None if tgt_role == "(Auto-detect)" else tgt_role
@@ -646,22 +699,6 @@ with tab2:
                                for s in missing)}
                     </div>""", unsafe_allow_html=True)
 
-                st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("🎯 Predict Careers from this Resume", use_container_width=True):
-                    with st.spinner("Predicting…"):
-                        r_preds = predict_careers("", text[:500], [], [], "", "", 70.0)
-                    st.markdown("**Top Career Matches from Resume Content:**")
-                    for i, pred in enumerate(r_preds[:5]):
-                        clr2 = ROLE_COLORS[i % len(ROLE_COLORS)]
-                        st.markdown(f"""
-                        <div style="display:flex;justify-content:space-between;align-items:center;
-                                    background:#f8fafc;border-left:3px solid {clr2};
-                                    border-radius:8px;padding:12px 18px;margin-bottom:8px">
-                          <span style="color:#0f172a;font-weight:600;font-size:14px">#{i+1} {pred['role']}</span>
-                          <span style="color:{clr2};font-weight:700;font-size:14px;
-                                       font-family:'DM Mono',monospace">{pred['score']}%</span>
-                        </div>""", unsafe_allow_html=True)
-
         elif ats_btn and not uploaded:
             st.warning("⚠️ Please upload a resume file first.")
         else:
@@ -715,8 +752,9 @@ with tab3:
         {"".join(f'<p style="color:#475569;font-size:13px;margin:3px 0">▸ {r}</p>' for r in non_tech)}
         </div>""", unsafe_allow_html=True)
 
+    # ── Installation block — use styled <div> instead of <pre> to guarantee dark text ──
     st.markdown("""
     <div class="card"><h3>📦 Installation</h3>
-    <pre>pip install streamlit pandas numpy scikit-learn joblib pdfplumber PyPDF2 python-docx scipy</pre>
-    <pre>streamlit run app.py</pre>
+      <div class="install-block">pip install -r requirements.txt</div>
+      <div class="install-block">streamlit run app.py</div>
     </div>""", unsafe_allow_html=True)
